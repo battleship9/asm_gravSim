@@ -141,7 +141,11 @@ _start:
 	jne .skip2
 
 	mov eax, [e + 84]	; e.xkey.keycode
-	cmp eax, 9
+	cmp eax, 9h			; esc keycode
+	je break
+
+	mov eax, [e + 84]	; e.xkey.keycode
+	cmp eax, 41h		; space keycode
 	je break
 
 .skip2:
@@ -155,3 +159,6 @@ break:
 	mov rax, 1
 	mov rbx, 0
 	int 80h
+
+doStaff:
+	ret
