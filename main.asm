@@ -132,7 +132,7 @@ _start:
 	call XDefaultGC
 	mov [defaultGC], rax
 
-loop1:
+.loop1:
 
 	; XNextEvent(d, &e);
 	mov rdi, [d]
@@ -142,13 +142,63 @@ loop1:
 	; is it an expose event
 	mov eax, [e]
 	cmp eax, 12	; Expose
-	jne skip1
+	jne .skip1
+
+	call drawObjects
+
+.skip1:
+	; is it a keypress event
+	mov eax, [e]
+	cmp eax, 2	; KeyPress
+	jne .skip2
+
+	; esc got pressed -> closes window
+	mov eax, [e + 84]	; e.xkey.keycode
+	cmp eax, 9h			; esc keycode
+	je .break
+
+	; space got pressed -> calls doStaff
+	; mov eax, [e + 84]	; e.xkey.keycode
+	cmp eax, 41h		; space keycode
+	jne .skip2
+
+	call doStaff
+
+.skip2:
+	jmp .loop1
+
+.break:
+
+	mov rdi, [d]
+	call XCloseDisplay
+
+	mov rax, 1
+	mov rbx, 0
+	int 80h
+
+
+
+doStaff:
+
+	
+
+	; XClearWindow(d, w)
+	mov rdi, [d]
+	mov rsi, [w]
+	call XClearWindow
+
+	call drawObjects
+
+	ret
+
+drawObjects:
 
 	xor r10, r10
-objectArrayLoop:
+
+.objectArrayLoop:
 	mov rax, [objectArray + r10]	; gets objectArray's r10th element
 	cmp rax, 0
-	je skip1
+	je .skip1
 
 	push r10	; r10 will be changed in next function call
 
@@ -167,41 +217,9 @@ objectArrayLoop:
 	pop r10		; welcome back r10
 
 	add r10, 8	; i++
-	jmp objectArrayLoop
+	jmp .objectArrayLoop
 
-skip1:
-	; is it a keypress event
-	mov eax, [e]
-	cmp eax, 2	; KeyPress
-	jne skip2
-
-	; esc got pressed -> closes window
-	mov eax, [e + 84]	; e.xkey.keycode
-	cmp eax, 9h			; esc keycode
-	je break
-
-	; space got pressed -> calls doStaff
-	; mov eax, [e + 84]	; e.xkey.keycode
-	cmp eax, 41h		; space keycode
-	jne skip2
-
-	call doStaff
-
-skip2:
-	jmp loop1
-
-break:
-
-	mov rdi, [d]
-	call XCloseDisplay
-
-	mov rax, 1
-	mov rbx, 0
-	int 80h
-
-
-
-doStaff:
+.skip1:
 
 	ret
 
