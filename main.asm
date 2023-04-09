@@ -4,9 +4,39 @@
 [bits 64]
 global _start
 
+
+struc object
+	.locX: resq 1
+	.locY: resq 1
+	.velX: resq 1
+	.velY: resq 1
+	.weight: resq 1
+endstruc
+
+
 section .data
 msg: db "Hello World!"
 msgLen: equ $ - msg
+squareLoc:
+	.x: dq 10
+	.y: dq 10
+objectA:
+	istruc object
+		at object.locX, dq 150
+		at object.locY, dq 150
+		at object.velX, dq 0
+		at object.velY, dq 0
+		at object.weight, dq 1
+	iend
+objectB:
+	istruc object
+		at object.locX, dq 400
+		at object.locY, dq 350
+		at object.velX, dq 0
+		at object.velY, dq 0
+		at object.weight, dq 1
+	iend
+objectArray: dq objectA, objectB, 0
 
 section .bss
 d: resq 1
@@ -34,6 +64,7 @@ section .text
 	extern XDrawString
 	extern XFillRectangle
 	extern XCloseDisplay
+	extern XClearWindow
 
 	;in case of x86_64 params are passed in RDI, RSI, RDX, RCX, R8, R9, stack (in reverse order)
 
@@ -82,7 +113,6 @@ _start:
 	push rax
 	call XCreateSimpleWindow
 	mov [w], rax
-
 	pop rax
 
 	; XSelectInput(d, w, ExposureMask | KeyPressMask);
@@ -96,7 +126,13 @@ _start:
 	mov rsi, [w]
 	call XMapWindow
 
-.loop:
+	; DefaultGC(d, s)
+	mov rdi, [d]
+	mov rsi, 0
+	call XDefaultGC
+	mov [defaultGC], rax
+
+loop1:
 
 	; XNextEvent(d, &e);
 	mov rdi, [d]
@@ -105,13 +141,96 @@ _start:
 
 	mov eax, [e]
 	cmp eax, 12	; Expose
-	jne .skip1
+	jne skip1
 
-	; DefaultGC(d, s)
+	xor r10, r10
+
+objectArrayLoop:
+	mov rax, [objectArray + r10]
+	cmp rax, 0
+	je skip1
+
+	push r10
+
+	; XFillRectangle(d, w, DefaultGC(d, s), 20, 20, 10, 10);
 	mov rdi, [d]
-	mov rsi, 0
-	call XDefaultGC
-	mov [defaultGC], rax
+	mov rsi, [w]
+	mov rdx, [defaultGC]
+	mov rcx, [rax]
+	mov r8, [rax + 8]
+	mov r9, 10
+	mov rax, 10
+	push rax
+	call XFillRectangle
+	pop rax
+
+	pop r10
+
+	add r10, 8
+	jmp objectArrayLoop
+
+skip1:
+	mov eax, [e]
+	cmp eax, 2	; KeyPress
+	jne skip2
+
+	mov eax, [e + 84]	; e.xkey.keycode
+	cmp eax, 9h			; esc keycode
+	je break
+
+	; mov eax, [e + 84]	; e.xkey.keycode
+	cmp eax, 41h		; space keycode
+	jne skip2
+
+	call doStaff
+
+skip2:
+	jmp loop1
+
+break:
+
+	mov rdi, [d]
+	call XCloseDisplay
+
+	mov rax, 1
+	mov rbx, 0
+	int 80h
+
+
+
+doStaff:
+	; ; XClearWindow(d, w)
+	; mov rdi, [d]
+	; mov rsi, [w]
+	; call XClearWindow
+
+	; mov rcx, [squareLoc.x]
+	; add rcx, 3
+	; mov [squareLoc.x], rcx
+
+	; ; XFillRectangle(d, w, DefaultGC(d, s), 20, 20, 10, 10);
+	; mov rdi, [d]
+	; mov rsi, [w]
+	; mov rdx, [defaultGC]
+	; mov r8, [squareLoc.y]
+	; mov r9, 10
+	; mov rax, 10
+	; push rax
+	; call XFillRectangle
+
+	; pop rax
+
+	ret
+
+
+
+
+
+
+
+
+
+
 
 	; ; XDrawString(d, w, DefaultGC(d, s), 10, 50, msg, strlen(msg));
 	; mov rdi, [d]
@@ -134,31 +253,3 @@ _start:
 	; mov rax, 10
 	; push rax
 	; call XFillRectangle
-
-.skip1:
-	mov eax, [e]
-	cmp eax, 2	; KeyPress
-	jne .skip2
-
-	mov eax, [e + 84]	; e.xkey.keycode
-	cmp eax, 9h			; esc keycode
-	je break
-
-	mov eax, [e + 84]	; e.xkey.keycode
-	cmp eax, 41h		; space keycode
-	je break
-
-.skip2:
-	jmp .loop
-
-break:
-
-	mov rdi, [d]
-	call XCloseDisplay
-
-	mov rax, 1
-	mov rbx, 0
-	int 80h
-
-doStaff:
-	ret
