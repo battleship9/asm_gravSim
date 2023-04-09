@@ -47,10 +47,10 @@ rootwindow: resq 1
 blackPixel: resq 1
 whitePixel: resq 1
 defaultGC: resq 1
-tmp: resq 1
 
 section .text
 
+	; x11 includes
 	extern XOpenDisplay
 	extern XDefaultScreen
 	extern XRootWindow
@@ -113,7 +113,7 @@ _start:
 	push rax
 	call XCreateSimpleWindow
 	mov [w], rax
-	pop rax
+	pop rax	; bruh moment. i don't know why it is required
 
 	; XSelectInput(d, w, ExposureMask | KeyPressMask);
 	mov rdi, [d]
@@ -139,18 +139,18 @@ loop1:
 	mov rsi, e
 	call XNextEvent
 
+	; is it an expose event
 	mov eax, [e]
 	cmp eax, 12	; Expose
 	jne skip1
 
 	xor r10, r10
-
 objectArrayLoop:
-	mov rax, [objectArray + r10]
+	mov rax, [objectArray + r10]	; gets objectArray's r10th element
 	cmp rax, 0
 	je skip1
 
-	push r10
+	push r10	; r10 will be changed in next function call
 
 	; XFillRectangle(d, w, DefaultGC(d, s), 20, 20, 10, 10);
 	mov rdi, [d]
@@ -162,22 +162,25 @@ objectArrayLoop:
 	mov rax, 10
 	push rax
 	call XFillRectangle
-	pop rax
+	pop rax	; bruh moment. i don't know why it is required
 
-	pop r10
+	pop r10		; welcome back r10
 
-	add r10, 8
+	add r10, 8	; i++
 	jmp objectArrayLoop
 
 skip1:
+	; is it a keypress event
 	mov eax, [e]
 	cmp eax, 2	; KeyPress
 	jne skip2
 
+	; esc got pressed -> closes window
 	mov eax, [e + 84]	; e.xkey.keycode
 	cmp eax, 9h			; esc keycode
 	je break
 
+	; space got pressed -> calls doStaff
 	; mov eax, [e + 84]	; e.xkey.keycode
 	cmp eax, 41h		; space keycode
 	jne skip2
@@ -199,26 +202,6 @@ break:
 
 
 doStaff:
-	; ; XClearWindow(d, w)
-	; mov rdi, [d]
-	; mov rsi, [w]
-	; call XClearWindow
-
-	; mov rcx, [squareLoc.x]
-	; add rcx, 3
-	; mov [squareLoc.x], rcx
-
-	; ; XFillRectangle(d, w, DefaultGC(d, s), 20, 20, 10, 10);
-	; mov rdi, [d]
-	; mov rsi, [w]
-	; mov rdx, [defaultGC]
-	; mov r8, [squareLoc.y]
-	; mov r9, 10
-	; mov rax, 10
-	; push rax
-	; call XFillRectangle
-
-	; pop rax
 
 	ret
 
