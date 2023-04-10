@@ -5,38 +5,29 @@
 global _start
 
 
-struc object
-	.locX: resq 1
-	.locY: resq 1
-	.velX: resq 1
-	.velY: resq 1
-	.weight: resq 1
-endstruc
-
-
 section .data
 msg: db "Hello World!"
 msgLen: equ $ - msg
-squareLoc:
-	.x: dq 10
-	.y: dq 10
+object0:
+	.locX: dq 100
+	.locY: dq 100
+	.weight: dq 100.0
 objectA:
-	istruc object
-		at object.locX, dq 150
-		at object.locY, dq 150
-		at object.velX, dq 0
-		at object.velY, dq 0
-		at object.weight, dq 1
-	iend
+	.locX: dq 150
+	.locY: dq 450
+	.velX: dq 0.0
+	.velY: dq 0.0
+	.weight: dq 1.0
 objectB:
-	istruc object
-		at object.locX, dq 400
-		at object.locY, dq 350
-		at object.velX, dq 0
-		at object.velY, dq 0
-		at object.weight, dq 1
-	iend
+	.locX: dq 100
+	.locY: dq 100
+	.velX: dq 0.0
+	.velY: dq 0.0
+	.weight: dq 1.0
 objectArray: dq objectA, objectB, 0
+t: dq 0
+; G: dq 6.67e-11
+G: dq 100.0
 
 section .bss
 d: resq 1
@@ -180,8 +171,6 @@ _start:
 
 doStaff:
 
-	
-
 	; XClearWindow(d, w)
 	mov rdi, [d]
 	mov rsi, [w]
@@ -191,14 +180,55 @@ doStaff:
 
 	ret
 
+
+
 drawObjects:
 
 	xor r10, r10
 
 .objectArrayLoop:
-	mov rax, [objectArray + r10]	; gets objectArray's r10th element
-	cmp rax, 0
+	mov r11, [objectArray + r10]	; gets objectArray's r10th element
+	cmp r11, 0
 	je .skip1
+
+
+
+	; applies gravity
+
+	; v = v0 + ((G * mOther) / (locOther - locThis)^2) * (locOther - locThis) / |locOther - locThis|
+	finit
+	fild qword [object0 + 8]
+	fld qword [r11 + 8]
+	fsub
+	fild qword [object0 + 8]
+	fld qword [r11 + 8]
+	fsub
+	fabs
+	fdiv						; (locOther - locThis) / |locOther - locThis|
+	fld qword [G]				; grav const
+	fld qword [object0 + 16]	; mOther
+	fmul						; G * mOther
+	fild qword [object0 + 8]
+	fld qword [r11 + 8]
+	fsub						; (locOther - locThis)
+	fild qword [object0 + 8]
+	fld qword [r11 + 8]
+	fsub						; (locOther - locThis)
+	fmul						; (locOther - locThis)^2)
+	fdiv						; ( G * mOther ) / (locOther - locThis)^2)
+	fmul						; ((G * mOther) / (locOther - locThis)^2) * (locOther - locThis) / |locOther - locThis|
+	fld qword [r11 + 24]		; v0
+	fadd						; v0 + ((G * mOther) / (locOther - locThis)^2) * (locOther - locThis) / |locOther - locThis|
+
+	fstp qword [r11 + 24]		; saves vel
+
+	finit
+	fild qword [r11 + 8]
+	fld qword [r11 + 24]
+	fsub
+	fistp qword [r11 + 8]		; updates loc
+
+
 
 	push r10	; r10 will be changed in next function call
 
@@ -206,8 +236,8 @@ drawObjects:
 	mov rdi, [d]
 	mov rsi, [w]
 	mov rdx, [defaultGC]
-	mov rcx, [rax]
-	mov r8, [rax + 8]
+	mov rcx, [r11]
+	mov r8, [r11 + 8]
 	mov r9, 10
 	mov rax, 10
 	push rax
@@ -221,9 +251,11 @@ drawObjects:
 
 .skip1:
 
+	mov rax, [t]
+	inc rax
+	mov [t], rax
+
 	ret
-
-
 
 
 
@@ -254,3 +286,8 @@ drawObjects:
 	; mov rax, 10
 	; push rax
 	; call XFillRectangle
+
+	; ; XClearWindow(d, w)
+	; mov rdi, [d]
+	; mov rsi, [w]
+	; call XClearWindow
