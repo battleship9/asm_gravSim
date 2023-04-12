@@ -13,18 +13,18 @@ object0:
 	.locY: dq 100
 	.weight: dq 100.0
 objectA:
-	.locX: dq 150
-	.locY: dq 450
-	.velX: dq 0.0
-	.velY: dq 0.0
-	.weight: dq 1.0
-objectB:
 	.locX: dq 100
 	.locY: dq 100
 	.velX: dq 0.0
 	.velY: dq 0.0
 	.weight: dq 1.0
-objectArray: dq objectA, objectB, 0
+objectB:
+	.locX: dq 200
+	.locY: dq 200
+	.velX: dq 0.0
+	.velY: dq 0.0
+	.weight: dq 1.0
+objectArray: dq objectA, 0, objectB, 0
 t: dq 0
 ; G: dq 6.67e-11
 G: dq 100.0
@@ -193,15 +193,15 @@ drawObjects:
 
 
 
-	; applies gravity
+	; applies gravity x
 
 	; v = v0 + ((G * mOther) / (locOther - locThis)^2) * (locOther - locThis) / |locOther - locThis|
 	finit
+	fild qword [r11 + 8]
 	fild qword [object0 + 8]
-	fld qword [r11 + 8]
 	fsub
+	fild qword [r11 + 8]
 	fild qword [object0 + 8]
-	fld qword [r11 + 8]
 	fsub
 	fabs
 	fdiv						; (locOther - locThis) / |locOther - locThis|
@@ -227,6 +227,43 @@ drawObjects:
 	fld qword [r11 + 24]
 	fsub
 	fistp qword [r11 + 8]		; updates loc
+
+
+
+	; applies gravity y
+
+	; v = v0 + ((G * mOther) / (locOther - locThis)^2) * (locOther - locThis) / |locOther - locThis|
+	finit
+	fild qword [r11 + 0]
+	fild qword [object0 + 0]
+	fsub
+	fild qword [r11 + 0]
+	fild qword [object0 + 0]
+	fsub
+	fabs
+	fdiv						; (locOther - locThis) / |locOther - locThis|
+	fld qword [G]				; grav const
+	fld qword [object0 + 16]	; mOther
+	fmul						; G * mOther
+	fild qword [object0 + 0]
+	fld qword [r11 + 0]
+	fsub						; (locOther - locThis)
+	fild qword [object0 + 0]
+	fld qword [r11 + 0]
+	fsub						; (locOther - locThis)
+	fmul						; (locOther - locThis)^2)
+	fdiv						; ( G * mOther ) / (locOther - locThis)^2)
+	fmul						; ((G * mOther) / (locOther - locThis)^2) * (locOther - locThis) / |locOther - locThis|
+	fld qword [r11 + 16]		; v0
+	fadd						; v0 + ((G * mOther) / (locOther - locThis)^2) * (locOther - locThis) / |locOther - locThis|
+
+	fstp qword [r11 + 16]		; saves vel
+
+	finit
+	fild qword [r11 + 0]
+	fld qword [r11 + 16]
+	fsub
+	fistp qword [r11 + 0]		; updates loc
 
 
 
