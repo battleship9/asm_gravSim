@@ -9,22 +9,22 @@ section .data
 msg: db "Hello World!"
 msgLen: equ $ - msg
 object0:
-	.locX: dq 100
-	.locY: dq 100
+	.locX: dq 200
+	.locY: dq 200
 	.weight: dq 100.0
 objectA:
-	.locX: dq 100
-	.locY: dq 100
-	.velX: dq 0.0
+	.locX: dq 0
+	.locY: dq 0
+	.velX: dq 1.0
 	.velY: dq 0.0
 	.weight: dq 1.0
 objectB:
-	.locX: dq 200
-	.locY: dq 200
+	.locX: dq 350
+	.locY: dq 300
 	.velX: dq 0.0
 	.velY: dq 0.0
 	.weight: dq 1.0
-objectArray: dq objectA, 0, objectB, 0
+objectArray: dq objectA, objectB, 0
 t: dq 0
 ; G: dq 6.67e-11
 G: dq 100.0
@@ -135,7 +135,7 @@ _start:
 	cmp eax, 12	; Expose
 	jne .skip1
 
-	call drawObjects
+	call doStaff
 
 .skip1:
 	; is it a keypress event
@@ -176,6 +176,18 @@ doStaff:
 	mov rsi, [w]
 	call XClearWindow
 
+	; XFillRectangle(d, w, DefaultGC(d, s), 20, 20, 10, 10);
+	mov rdi, [d]
+	mov rsi, [w]
+	mov rdx, [defaultGC]
+	mov rcx, [object0]
+	mov r8, [object0 + 8]
+	mov r9, 10
+	mov rax, 10
+	push rax
+	call XFillRectangle
+	pop rax	; bruh moment. i don't know why it is required
+
 	call drawObjects
 
 	ret
@@ -195,30 +207,44 @@ drawObjects:
 
 	; applies gravity x
 
-	; v = v0 + ((G * mOther) / (locOther - locThis)^2) * (locOther - locThis) / |locOther - locThis|
+	; v = v0 + ((G * mOther) / distance^2) * direction
 	finit
+
 	fild qword [r11 + 8]
 	fild qword [object0 + 8]
 	fsub
-	fild qword [r11 + 8]
-	fild qword [object0 + 8]
-	fsub
-	fabs
-	fdiv						; (locOther - locThis) / |locOther - locThis|
+
+	fxam
+	fstsw ax
+	and rax, 0100011100000000B	; take only condition code flags
+
+	fxtract
+	fstp st1					; direction
 	fld qword [G]				; grav const
 	fld qword [object0 + 16]	; mOther
 	fmul						; G * mOther
+
+	; calculates distance using the pythagoras theorem
 	fild qword [object0 + 8]
 	fld qword [r11 + 8]
-	fsub						; (locOther - locThis)
+	fsub						; (locOtherY - locThisY)
 	fild qword [object0 + 8]
 	fld qword [r11 + 8]
-	fsub						; (locOther - locThis)
-	fmul						; (locOther - locThis)^2)
-	fdiv						; ( G * mOther ) / (locOther - locThis)^2)
-	fmul						; ((G * mOther) / (locOther - locThis)^2) * (locOther - locThis) / |locOther - locThis|
+	fsub						; (locOtherY - locThisY)
+	fmul						; (locOtherY - locThisY)^2
+	fild qword [object0 + 0]
+	fld qword [r11 + 0]
+	fsub						; (locOtherX - locThisX)
+	fild qword [object0 + 0]
+	fld qword [r11 + 0]
+	fsub						; (locOtherX - locThisX)
+	fmul						; (locOtherX - locThisX)^2
+	fadd						; distance^2
+
+	fdiv						; ( G * mOther ) / distance^2)
+	fmul						; ((G * mOther) / distance^2) * direction
 	fld qword [r11 + 24]		; v0
-	fadd						; v0 + ((G * mOther) / (locOther - locThis)^2) * (locOther - locThis) / |locOther - locThis|
+	fadd						; v0 + ((G * mOther) / distance^2) * direction
 
 	fstp qword [r11 + 24]		; saves vel
 
@@ -232,30 +258,39 @@ drawObjects:
 
 	; applies gravity y
 
-	; v = v0 + ((G * mOther) / (locOther - locThis)^2) * (locOther - locThis) / |locOther - locThis|
+	; v = v0 + ((G * mOther) / distance^2) * direction
 	finit
+
 	fild qword [r11 + 0]
 	fild qword [object0 + 0]
 	fsub
-	fild qword [r11 + 0]
-	fild qword [object0 + 0]
-	fsub
-	fabs
-	fdiv						; (locOther - locThis) / |locOther - locThis|
+	fxtract
+	fstp st1					; direction
 	fld qword [G]				; grav const
 	fld qword [object0 + 16]	; mOther
 	fmul						; G * mOther
+
+	; calculates distance using the pythagoras theorem
+	fild qword [object0 + 8]
+	fld qword [r11 + 8]
+	fsub						; (locOtherY - locThisY)
+	fild qword [object0 + 8]
+	fld qword [r11 + 8]
+	fsub						; (locOtherY - locThisY)
+	fmul						; (locOtherY - locThisY)^2
 	fild qword [object0 + 0]
 	fld qword [r11 + 0]
-	fsub						; (locOther - locThis)
+	fsub						; (locOtherX - locThisX)
 	fild qword [object0 + 0]
 	fld qword [r11 + 0]
-	fsub						; (locOther - locThis)
-	fmul						; (locOther - locThis)^2)
-	fdiv						; ( G * mOther ) / (locOther - locThis)^2)
-	fmul						; ((G * mOther) / (locOther - locThis)^2) * (locOther - locThis) / |locOther - locThis|
+	fsub						; (locOtherX - locThisX)
+	fmul						; (locOtherX - locThisX)^2
+	fadd						; distance^2
+
+	fdiv						; ( G * mOther ) / distance^2)
+	fmul						; ((G * mOther) / distance^2) * direction
 	fld qword [r11 + 16]		; v0
-	fadd						; v0 + ((G * mOther) / (locOther - locThis)^2) * (locOther - locThis) / |locOther - locThis|
+	fadd						; v0 + ((G * mOther) / distance^2) * direction
 
 	fstp qword [r11 + 16]		; saves vel
 
