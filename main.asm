@@ -9,25 +9,24 @@ section .data
 msg: db "Hello World!"
 msgLen: equ $ - msg
 object0:
-	.locX: dq 200
-	.locY: dq 200
-	.weight: dq 100.0
+	.locX: dq 500
+	.locY: dq 500
+	.weight: dq 500000000000000.0
 objectA:
-	.locX: dq 0
-	.locY: dq 0
-	.velX: dq 1.0
-	.velY: dq 0.0
-	.weight: dq 1.0
-objectB:
-	.locX: dq 350
-	.locY: dq 300
+	.locX: dq 160
+	.locY: dq 160
 	.velX: dq 0.0
 	.velY: dq 0.0
 	.weight: dq 1.0
-objectArray: dq objectA, objectB, 0
-t: dq 0
-; G: dq 6.67e-11
-G: dq 100.0
+objectB:
+	.locX: dq 100
+	.locY: dq 250
+	.velX: dq 0.0
+	.velY: dq -10.0
+	.weight: dq 1.0
+objectArray: dq objectB, 0, objectA, objectB, 0
+G: dq 6.67e-11
+; G: dq 100.0
 
 section .bss
 d: resq 1
@@ -171,10 +170,10 @@ _start:
 
 doStaff:
 
-	; XClearWindow(d, w)
-	mov rdi, [d]
-	mov rsi, [w]
-	call XClearWindow
+	; ; XClearWindow(d, w)
+	; mov rdi, [d]
+	; mov rsi, [w]
+	; call XClearWindow
 
 	; XFillRectangle(d, w, DefaultGC(d, s), 20, 20, 10, 10);
 	mov rdi, [d]
@@ -204,6 +203,26 @@ drawObjects:
 	je .skip1
 
 
+	; finit
+	; ; calculates distance using the pythagoras theorem
+	; fild qword [object0 + 8]
+	; fild qword [r11 + 8]
+	; fsub						; (locOtherY - locThisY)
+	; fild qword [object0 + 8]
+	; fild qword [r11 + 8]
+	; fsub						; (locOtherY - locThisY)
+	; fmul						; (locOtherY - locThisY)^2
+	; fild qword [object0 + 0]
+	; fld qword [r11 + 0]
+	; fsub						; (locOtherX - locThisX)
+	; fild qword [object0 + 0]
+	; fld qword [r11 + 0]
+	; fsub						; (locOtherX - locThisX)
+	; fmul						; (locOtherX - locThisX)^2
+	; fadd						; distance^2
+	; fsqrt
+	; fistp qword [r11 + 8]
+
 
 	; applies gravity x
 
@@ -216,27 +235,37 @@ drawObjects:
 
 	fxam
 	fstsw ax
-	and rax, 0100011100000000B	; take only condition code flags
+	and rax, 0100000000000000b	; take only condition code flags
+	cmp rax, 0
+	jng .skip1X
+
+	fldz						; direction
+	jmp .else1X
+
+.skip1X:
 
 	fxtract
 	fstp st1					; direction
+
+.else1X:
+
 	fld qword [G]				; grav const
 	fld qword [object0 + 16]	; mOther
 	fmul						; G * mOther
 
 	; calculates distance using the pythagoras theorem
 	fild qword [object0 + 8]
-	fld qword [r11 + 8]
+	fild qword [r11 + 8]
 	fsub						; (locOtherY - locThisY)
 	fild qword [object0 + 8]
-	fld qword [r11 + 8]
+	fild qword [r11 + 8]
 	fsub						; (locOtherY - locThisY)
 	fmul						; (locOtherY - locThisY)^2
 	fild qword [object0 + 0]
-	fld qword [r11 + 0]
+	fild qword [r11 + 0]
 	fsub						; (locOtherX - locThisX)
 	fild qword [object0 + 0]
-	fld qword [r11 + 0]
+	fild qword [r11 + 0]
 	fsub						; (locOtherX - locThisX)
 	fmul						; (locOtherX - locThisX)^2
 	fadd						; distance^2
@@ -264,25 +293,41 @@ drawObjects:
 	fild qword [r11 + 0]
 	fild qword [object0 + 0]
 	fsub
+
+	fxam
+	fstsw ax
+	and rax, 0100000000000000b	; take only condition code flags
+	cmp rax, 0
+	jng .skip1Y
+
+	finit
+	fldz						; direction
+	jmp .else1Y
+
+.skip1Y:
+
 	fxtract
 	fstp st1					; direction
+
+.else1Y:
+
 	fld qword [G]				; grav const
 	fld qword [object0 + 16]	; mOther
 	fmul						; G * mOther
 
 	; calculates distance using the pythagoras theorem
 	fild qword [object0 + 8]
-	fld qword [r11 + 8]
+	fild qword [r11 + 8]
 	fsub						; (locOtherY - locThisY)
 	fild qword [object0 + 8]
-	fld qword [r11 + 8]
+	fild qword [r11 + 8]
 	fsub						; (locOtherY - locThisY)
 	fmul						; (locOtherY - locThisY)^2
 	fild qword [object0 + 0]
-	fld qword [r11 + 0]
+	fild qword [r11 + 0]
 	fsub						; (locOtherX - locThisX)
 	fild qword [object0 + 0]
-	fld qword [r11 + 0]
+	fild qword [r11 + 0]
 	fsub						; (locOtherX - locThisX)
 	fmul						; (locOtherX - locThisX)^2
 	fadd						; distance^2
@@ -322,10 +367,6 @@ drawObjects:
 	jmp .objectArrayLoop
 
 .skip1:
-
-	mov rax, [t]
-	inc rax
-	mov [t], rax
 
 	ret
 
