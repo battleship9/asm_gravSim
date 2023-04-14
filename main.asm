@@ -6,8 +6,6 @@ global _start
 
 
 section .data
-msg: db "Hello World!"
-msgLen: equ $ - msg
 objectA:
 	.locX: dq 500
 	.locY: dq 200
