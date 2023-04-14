@@ -8,23 +8,35 @@ global _start
 section .data
 msg: db "Hello World!"
 msgLen: equ $ - msg
-object0:
-	.locX: dq 250
-	.locY: dq 250
-	.weight: dq 100.0
+; object0:
+; 	.locX: dq 250
+; 	.locY: dq 250
+; 	.weight: dq 100.0
 objectA:
-	.locX: dq 160
-	.locY: dq 100
+	.locX: dq 500
+	.locY: dq 200
+	.velX: dq -10.0
+	.velY: dq 0.0
+	.weight: dq 200.0
+objectB:
+	.locX: dq 500
+	.locY: dq 370
 	.velX: dq 10.0
 	.velY: dq 0.0
-	.weight: dq 1.0
-objectB:
-	.locX: dq 100
-	.locY: dq 250
-	.velX: dq 0.0
-	.velY: dq 15.0
-	.weight: dq 1.0
-objectArray: dq objectA, objectB, 0
+	.weight: dq 100.0
+objectC:
+	.locX: dq 200
+	.locY: dq 270
+	.velX: dq 1.0
+	.velY: dq 0.0
+	.weight: dq 100.0
+objectD:
+	.locX: dq 700
+	.locY: dq 700
+	.velX: dq 10.0
+	.velY: dq 0.0
+	.weight: dq 50.0
+objectArray: dq objectA, objectB, objectC, objectD, 0
 ; G: dq 6.67e-11
 G: dq 100.0
 
@@ -134,7 +146,7 @@ _start:
 	cmp eax, 12	; Expose
 	jne .skip1
 
-	call doStaff
+	call initObjects
 
 .skip1:
 	; is it a keypress event
@@ -175,32 +187,41 @@ doStaff:
 	mov rsi, [w]
 	call XClearWindow
 
-	; XFillRectangle(d, w, DefaultGC(d, s), 20, 20, 10, 10);
-	mov rdi, [d]
-	mov rsi, [w]
-	mov rdx, [defaultGC]
-	mov rcx, [object0]
-	mov r8, [object0 + 8]
-	mov r9, 10
-	mov rax, 10
-	push rax
-	call XFillRectangle
-	pop rax	; bruh moment. i don't know why it is required
+	; ; XFillRectangle(d, w, DefaultGC(d, s), 20, 20, 10, 10);
+	; mov rdi, [d]
+	; mov rsi, [w]
+	; mov rdx, [defaultGC]
+	; mov rcx, [object0]
+	; mov r8, [object0 + 8]
+	; mov r9, 10
+	; mov rax, 10
+	; push rax
+	; call XFillRectangle
+	; pop rax	; bruh moment. i don't know why it is required
 
-	call drawObjects
+	call updateObjects
 
 	ret
 
 
 
-drawObjects:
+updateObjects:
 
 	xor r10, r10
-
 .objectArrayLoop:
 	mov r11, [objectArray + r10]	; gets objectArray's r10th element
 	cmp r11, 0
+	je .skip2
+
+
+	xor r12, r12
+.objectObjectArrayLoop:
+	mov r13, [objectArray + r12]	; gets objectArray's r12th element
+	cmp r13, 0
 	je .skip1
+
+	cmp r13, r11
+	je .next1
 
 
 	; applies gravity x
@@ -209,7 +230,7 @@ drawObjects:
 	finit
 
 	fild qword [r11 + 8]
-	fild qword [object0 + 8]
+	fild qword [r13 + 8]
 	fsub
 
 	fxam
@@ -229,21 +250,21 @@ drawObjects:
 .else1X:
 
 	fld qword [G]				; grav const
-	fld qword [object0 + 16]	; mOther
+	fld qword [r13 + 32]		; mOther
 	fmul						; G * mOther
 
 	; calculates distance using the pythagoras theorem
-	fild qword [object0 + 8]
+	fild qword [r13 + 8]
 	fild qword [r11 + 8]
 	fsub						; (locOtherY - locThisY)
-	fild qword [object0 + 8]
+	fild qword [r13 + 8]
 	fild qword [r11 + 8]
 	fsub						; (locOtherY - locThisY)
 	fmul						; (locOtherY - locThisY)^2
-	fild qword [object0 + 0]
+	fild qword [r13 + 0]
 	fild qword [r11 + 0]
 	fsub						; (locOtherX - locThisX)
-	fild qword [object0 + 0]
+	fild qword [r13 + 0]
 	fild qword [r11 + 0]
 	fsub						; (locOtherX - locThisX)
 	fmul						; (locOtherX - locThisX)^2
@@ -264,7 +285,7 @@ drawObjects:
 	finit
 
 	fild qword [r11 + 0]
-	fild qword [object0 + 0]
+	fild qword [r13 + 0]
 	fsub
 
 	fxam
@@ -285,21 +306,21 @@ drawObjects:
 .else1Y:
 
 	fld qword [G]				; grav const
-	fld qword [object0 + 16]	; mOther
+	fld qword [r13 + 32]		; mOther
 	fmul						; G * mOther
 
 	; calculates distance using the pythagoras theorem
-	fild qword [object0 + 8]
+	fild qword [r13 + 8]
 	fild qword [r11 + 8]
 	fsub						; (locOtherY - locThisY)
-	fild qword [object0 + 8]
+	fild qword [r13 + 8]
 	fild qword [r11 + 8]
 	fsub						; (locOtherY - locThisY)
 	fmul						; (locOtherY - locThisY)^2
-	fild qword [object0 + 0]
+	fild qword [r13 + 0]
 	fild qword [r11 + 0]
 	fsub						; (locOtherX - locThisX)
-	fild qword [object0 + 0]
+	fild qword [r13 + 0]
 	fild qword [r11 + 0]
 	fsub						; (locOtherX - locThisX)
 	fmul						; (locOtherX - locThisX)^2
@@ -312,6 +333,13 @@ drawObjects:
 
 	fstp qword [r11 + 16]		; saves vel
 
+
+.next1:
+
+	add r12, 8	; j++
+	jmp .objectObjectArrayLoop
+
+.skip1:
 
 	finit
 	fild qword [r11 + 8]
@@ -342,10 +370,44 @@ drawObjects:
 
 	pop r10		; welcome back r10
 
+.next2:
+
 	add r10, 8	; i++
 	jmp .objectArrayLoop
 
-.skip1:
+.skip2:
+
+	ret
+
+
+initObjects:
+
+	xor r10, r10
+.objectArrayLoop:
+	mov r11, [objectArray + r10]	; gets objectArray's r10th element
+	cmp r11, 0
+	je .skip
+
+	push r10	; r10 will be changed in next function call
+
+	; XFillRectangle(d, w, DefaultGC(d, s), 20, 20, 10, 10);
+	mov rdi, [d]
+	mov rsi, [w]
+	mov rdx, [defaultGC]
+	mov rcx, [r11]
+	mov r8, [r11 + 8]
+	mov r9, 10
+	mov rax, 10
+	push rax
+	call XFillRectangle
+	pop rax	; bruh moment. i don't know why it is required
+
+	pop r10		; welcome back r10
+
+	add r10, 8	; i++
+	jmp .objectArrayLoop
+
+.skip:
 
 	ret
 
