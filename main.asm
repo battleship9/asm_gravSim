@@ -9,24 +9,24 @@ section .data
 msg: db "Hello World!"
 msgLen: equ $ - msg
 object0:
-	.locX: dq 500
-	.locY: dq 500
-	.weight: dq 500000000000000.0
+	.locX: dq 250
+	.locY: dq 250
+	.weight: dq 100.0
 objectA:
 	.locX: dq 160
-	.locY: dq 160
-	.velX: dq 0.0
+	.locY: dq 100
+	.velX: dq 10.0
 	.velY: dq 0.0
 	.weight: dq 1.0
 objectB:
 	.locX: dq 100
 	.locY: dq 250
 	.velX: dq 0.0
-	.velY: dq -10.0
+	.velY: dq 15.0
 	.weight: dq 1.0
-objectArray: dq objectB, 0, objectA, objectB, 0
-G: dq 6.67e-11
-; G: dq 100.0
+objectArray: dq objectA, objectB, 0
+; G: dq 6.67e-11
+G: dq 100.0
 
 section .bss
 d: resq 1
@@ -170,10 +170,10 @@ _start:
 
 doStaff:
 
-	; ; XClearWindow(d, w)
-	; mov rdi, [d]
-	; mov rsi, [w]
-	; call XClearWindow
+	; XClearWindow(d, w)
+	mov rdi, [d]
+	mov rsi, [w]
+	call XClearWindow
 
 	; XFillRectangle(d, w, DefaultGC(d, s), 20, 20, 10, 10);
 	mov rdi, [d]
@@ -201,27 +201,6 @@ drawObjects:
 	mov r11, [objectArray + r10]	; gets objectArray's r10th element
 	cmp r11, 0
 	je .skip1
-
-
-	; finit
-	; ; calculates distance using the pythagoras theorem
-	; fild qword [object0 + 8]
-	; fild qword [r11 + 8]
-	; fsub						; (locOtherY - locThisY)
-	; fild qword [object0 + 8]
-	; fild qword [r11 + 8]
-	; fsub						; (locOtherY - locThisY)
-	; fmul						; (locOtherY - locThisY)^2
-	; fild qword [object0 + 0]
-	; fld qword [r11 + 0]
-	; fsub						; (locOtherX - locThisX)
-	; fild qword [object0 + 0]
-	; fld qword [r11 + 0]
-	; fsub						; (locOtherX - locThisX)
-	; fmul						; (locOtherX - locThisX)^2
-	; fadd						; distance^2
-	; fsqrt
-	; fistp qword [r11 + 8]
 
 
 	; applies gravity x
@@ -276,12 +255,6 @@ drawObjects:
 	fadd						; v0 + ((G * mOther) / distance^2) * direction
 
 	fstp qword [r11 + 24]		; saves vel
-
-	finit
-	fild qword [r11 + 8]
-	fld qword [r11 + 24]
-	fsub
-	fistp qword [r11 + 8]		; updates loc
 
 
 
@@ -339,11 +312,17 @@ drawObjects:
 
 	fstp qword [r11 + 16]		; saves vel
 
+
 	finit
+	fild qword [r11 + 8]
+	fld qword [r11 + 24]
+	fsub
+	fistp qword [r11 + 8]		; updates locY
+
 	fild qword [r11 + 0]
 	fld qword [r11 + 16]
 	fsub
-	fistp qword [r11 + 0]		; updates loc
+	fistp qword [r11 + 0]		; updates locX
 
 
 
