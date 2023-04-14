@@ -68,8 +68,6 @@ section .text
 	extern XCloseDisplay
 	extern XClearWindow
 
-	;in case of x86_64 params are passed in RDI, RSI, RDX, RCX, R8, R9, stack (in reverse order)
-
 _start:
 
 	; d = XOpenDisplay(NULL);
@@ -186,18 +184,6 @@ doStaff:
 	mov rdi, [d]
 	mov rsi, [w]
 	call XClearWindow
-
-	; ; XFillRectangle(d, w, DefaultGC(d, s), 20, 20, 10, 10);
-	; mov rdi, [d]
-	; mov rsi, [w]
-	; mov rdx, [defaultGC]
-	; mov rcx, [object0]
-	; mov r8, [object0 + 8]
-	; mov r9, 10
-	; mov rax, 10
-	; push rax
-	; call XFillRectangle
-	; pop rax	; bruh moment. i don't know why it is required
 
 	call updateObjects
 
@@ -410,38 +396,3 @@ initObjects:
 .skip:
 
 	ret
-
-
-
-
-
-
-
-
-
-	; ; XDrawString(d, w, DefaultGC(d, s), 10, 50, msg, strlen(msg));
-	; mov rdi, [d]
-	; mov rsi, [w]
-	; mov rdx, [defaultGC]
-	; mov rcx, 10
-	; mov r8, 50
-	; mov r9, msg
-	; mov rax, msgLen
-	; push rax
-	; call XDrawString
-
-	; ; XFillRectangle(d, w, DefaultGC(d, s), 20, 20, 10, 10);
-	; mov rdi, [d]
-	; mov rsi, [w]
-	; mov rdx, [defaultGC]
-	; mov rcx, 20
-	; mov r8, 20
-	; mov r9, 10
-	; mov rax, 10
-	; push rax
-	; call XFillRectangle
-
-	; ; XClearWindow(d, w)
-	; mov rdi, [d]
-	; mov rsi, [w]
-	; call XClearWindow
