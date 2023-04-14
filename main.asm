@@ -8,10 +8,6 @@ global _start
 section .data
 msg: db "Hello World!"
 msgLen: equ $ - msg
-; object0:
-; 	.locX: dq 250
-; 	.locY: dq 250
-; 	.weight: dq 100.0
 objectA:
 	.locX: dq 500
 	.locY: dq 200
